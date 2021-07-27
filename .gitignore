@@ -1,0 +1,9 @@
+# Created by .ignore support plugin (hsz.mobi)
+.ipynb_checkpoints/
+__pycache__/
+metrics/
+*.icloud
+*.xml
+*,pyc
+*.iml
+*.idea

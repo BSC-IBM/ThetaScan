@@ -4,10 +4,10 @@
 #-------------------------------------------------------------------------------
 
 import ThetaScan
-from ThetaScan import ThetaScan
+from ThetaScan.ThetaScan import ThetaScan
 
 from matplotlib import pyplot as plt
-from ThetaScan.timeseries import *
+from ThetaScan.utilities import *
 from ThetaScan.ThetaModel import *
 
 #-------------------------------------------------------------------------------
@@ -22,15 +22,16 @@ def main():
 
 	## 1. Generate synthetic dataset
 	ts = generate_ts_dataset(N, ts_len)
-	trace = ts[2]
+	trace = ts[1]
 	trace_train = trace[:int(ts_len*0.75)]
 
 	th = ThetaModel()
 	th.fit(trace_train,20)
 	full_trace_pred, y_pred = th.forecast(int(ts_len*0.25))
 
+	ts = ThetaScan()
+	forecasted_request, forecasted_predicted = ts.recommend(trace)
 
-	## 3. Autoscaling
 
 	## 4. Plotting
 
