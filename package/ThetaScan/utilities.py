@@ -20,6 +20,7 @@ def generate_ts(ts_type, ts_len, usage_mean=200, usage_std=10, slope=0.15, perio
         trace = np.random.normal(usage_mean, usage_std, ts_len)
         trace = np.clip(trace, 0.1,None)
     elif ts_type == "trending":
+        usage_std = 10
         trend_ts = usage_mean * slope * np.arange(ts_len) / period
         trace = np.random.normal(usage_mean, usage_std, ts_len)
         trace = trace + trend_ts

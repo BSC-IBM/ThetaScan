@@ -14,6 +14,8 @@ class ThetaScan():
         self.forecaster = forecaster
         self.default_request = default_request
         self.stat_threshold = stat_threshold
+        self.LIMIT_FACTOR_PREV_USAGE = 5  # we can change this constant, we use it to avoid forecasting peaks
+
 
     def scan(self,trace,test_size,sp_max):
         filterwarnings('ignore')
@@ -72,7 +74,7 @@ class ThetaScan():
         return (trace_notrend, trace_pred, slope)
 
 
-    def detect_behaviour(self,trace,test_size,sp_max):
+    def detect_behaviour(self,trace,limit,test_size,sp_max):
         scenarios = ['stat', 'prob.ctan', 'prob.period', 'period']
 
         ## 1. Stationarity Test
@@ -92,8 +94,8 @@ class ThetaScan():
                 scenario = 3  ## ADF = NonStat / Ours = NonStat -> Proceed to Predict, Periodic
         y_notrend, y_pred, slope = self.detect_trend(trace)
 
-        #if period_est < limit:
-            #scenario = 0
+        if period_est < limit:
+            scenario = 0
 
         ## 4. Return all flags/estimations
         information = (
@@ -110,19 +112,18 @@ class ThetaScan():
         if step < 1:
             y_pred = [0]
         else:
-            forecaster_4 = ThetaModel()
-            forecaster_4.fit(trace, step)
+            #forecaster = ThetaModel()
+            self.forecaster.fit(trace, step)
             fh = np.arange(step) + 1  ## <- LENGTH WILL BE HIST (fit) + NEXT STEP (predict)
-            y_pred = forecaster_4.forecast(len(fh))[1]  ## <- PREDICT STEP
+            y_pred = self.forecaster.forecast(len(fh))[1]  ## <- PREDICT STEP
         return y_pred
 
-    def forecast(self, trace, window_size, i,observation_window,prev_usage):
+    def forecast_segment(self, trace, window_size, i,observation_window,prev_usage):
         observed_segment = min(i * window_size, observation_window)  # choose the minimum number of steps between the maximum observation window and the available number of time steps
         observed_segment_index = range(i * window_size - observed_segment, i * window_size)
         step_test = observed_segment // 8  # the test size for testing cycles
         step_max = observed_segment // 3  # max cycle to be examined
-        decision_thetascan = self.detect_behaviour(trace,step_test,step_max)
-        LIMIT_FACTOR_PREV_USAGE = 3  # we can change this constant, we use it to avoid forecasting peaks
+        decision_thetascan = self.detect_behaviour(trace[observed_segment_index],window_size,step_test,step_max)
 
         if (decision_thetascan["scenario"][0] == "period" or decision_thetascan["scenario"][0] == "prob.period"):
             history = (decision_thetascan["period"].to_numpy())[0]  # Detected periodicity, get period as history for forecasting
@@ -139,8 +140,9 @@ class ThetaScan():
                                                    history)  # based on the seen trace, predict the number of steps in history
             prediction = max(forecast)  # as it is already a forecast, we get the maximum value for provisioning
 
-            if prediction > (max(prev_usage) * LIMIT_FACTOR_PREV_USAGE):
-                prediction = max(prev_usage) * LIMIT_FACTOR_PREV_USAGE  # to avoid strange behaviour at the beginning
+            if prediction > (max(prev_usage) * self.LIMIT_FACTOR_PREV_USAGE):
+                prediction = max(prev_usage) * self.LIMIT_FACTOR_PREV_USAGE  # to avoid strange behaviour at the beginning
+                print("limit factor")
             # if prediction < (min(prev_usage)*LIMIT_FACTOR_PREV_USAGE):
             #     print("strange min behaviour ", i * window*15)
             #     prediction = max(prev_usage) #to avoid strange behaviour at the beginning
@@ -162,5 +164,5 @@ class ThetaScan():
                 cur_step_idxs = range(i * window_size, (i + 1) * window_size)  # current steps to provision
             else:  # if we arrive to the end of the trace
                 cur_step_idxs = range(i * window_size, trace_len)
-            forecasted_request[cur_step_idxs], forecasted_predicted[cur_step_idxs] = self.forecast(trace, window_size, i,observation_window,previous_usage)
+            forecasted_request[cur_step_idxs], forecasted_predicted[cur_step_idxs] = self.forecast_segment(trace, window_size, i,observation_window,previous_usage)
         return forecasted_request, forecasted_predicted
