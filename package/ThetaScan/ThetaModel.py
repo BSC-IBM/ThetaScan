@@ -10,8 +10,8 @@ from ThetaScan.utilities import *
 #-------------------------------------------------------------------------------
 
 class ThetaModel:
-    def __init__(self):
-        self.alpha = 0.2
+    def __init__(self, alpha = 0.2):
+        self.alpha = alpha
 
 
     def fit (self, y, sp):
@@ -54,4 +54,3 @@ class ThetaModel:
         full_trace_pred = np.concatenate((self.dataset, y_pred))
 
         return full_trace_pred, y_pred
-

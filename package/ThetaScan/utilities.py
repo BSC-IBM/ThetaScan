@@ -13,7 +13,7 @@ try:
 except:
     from sktime.transformers.single_series.detrend import Detrender
 
-def generate_ts(ts_type, ts_len, usage_mean=200, usage_std=100, slope=0.1, period=20, spike_mean=800, spike_ratio=0.5):
+def generate_ts(ts_type, ts_len, usage_mean=200, usage_std=10, slope=0.15, period=20, spike_mean=800, spike_ratio=0.5):
     trace = np.zeros(ts_len)
 
     if ts_type == "stationary":
@@ -141,4 +141,3 @@ def retrend(y, start, end, slope, intercept):
 
     pred = y * (drift / np.mean(y))  # CHECK - Find a better way to estimate the general reconstruction...
     return pred
-

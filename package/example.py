@@ -26,11 +26,16 @@ def main():
 	trace_train = trace[:int(ts_len*0.75)]
 
 	th = ThetaModel()
+	fh = np.arange(20) + 1
 	th.fit(trace_train,20)
-	full_trace_pred, y_pred = th.forecast(int(ts_len*0.25))
+	full_trace_pred, y_pred = th.forecast(len(fh))
 
 	ts = ThetaScan()
 	forecasted_request, forecasted_predicted = ts.recommend(trace)
+	plt.plot(trace)
+	plt.plot(forecasted_request)
+	plt.show()
+
 
 
 	## 4. Plotting
