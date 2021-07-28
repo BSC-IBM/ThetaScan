@@ -142,7 +142,6 @@ class ThetaScan():
 
             if prediction > (max(prev_usage) * self.LIMIT_FACTOR_PREV_USAGE):
                 prediction = max(prev_usage) * self.LIMIT_FACTOR_PREV_USAGE  # to avoid strange behaviour at the beginning
-                print("limit factor")
             # if prediction < (min(prev_usage)*LIMIT_FACTOR_PREV_USAGE):
             #     print("strange min behaviour ", i * window*15)
             #     prediction = max(prev_usage) #to avoid strange behaviour at the beginning
