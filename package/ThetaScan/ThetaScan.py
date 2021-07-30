@@ -128,7 +128,7 @@ class ThetaScan():
         if (decision_thetascan["scenario"][0] == "period" or decision_thetascan["scenario"][0] == "prob.period"):
             history = (decision_thetascan["period"].to_numpy())[0]  # Detected periodicity, get period as history for forecasting
         else:
-            history = window_size  # get default 5 minute window as history for forecasting
+            history = window_size #observed_segment  # or window_size
 
         if (history > (i * window_size // 2)):  # this only happens in the first 10 minutes maximum (warm-up)
             seen_trace = trace[(i * window_size - history):i * window_size]
@@ -164,4 +164,66 @@ class ThetaScan():
             else:  # if we arrive to the end of the trace
                 cur_step_idxs = range(i * window_size, trace_len)
             forecasted_request[cur_step_idxs], forecasted_predicted[cur_step_idxs] = self.forecast_segment(trace, window_size, i,observation_window,previous_usage)
+        return forecasted_request, forecasted_predicted
+
+    def dynamic_forecast_segment(self, trace, idx_init, idx_end, default_window, observation_window,prev_usage):
+        observed_segment = min(idx_end, observation_window)  # choose the minimum number of steps between the maximum observation window and the available number of time steps
+        observed_segment_index = range(idx_end - observed_segment, idx_end)
+        step_test = observed_segment // 8  # the test size for testing cycles
+        step_max = observed_segment // 3  # max cycle to be examined
+        decision_thetascan = self.detect_behaviour(trace[observed_segment_index],default_window,step_test,step_max)
+
+        if (decision_thetascan["scenario"][0] == "period" or decision_thetascan["scenario"][0] == "prob.period"):
+            history = (decision_thetascan["period"].to_numpy())[0]  # Detected periodicity, get period as history for forecasting
+        else:
+            history = default_window  # get default 5 minute window as history for forecasting
+
+        if (history > (idx_end// 2)):  # this only happens in the first 10 minutes maximum (warm-up)
+            seen_trace = trace[(idx_end - history):idx_end]
+            prediction = np.percentile(seen_trace,
+                                       95)  # our prediction in the warm-up is the 95 percentile of the seen trace
+            forecast = seen_trace[:default_window]  # our forecast in the warm-up is the seen trace
+        else:
+            forecast = self.next_step_forecasting_theta(trace[:idx_end],
+                                                   history)  # based on the seen trace, predict the number of steps in history
+            prediction = max(forecast)  # as it is already a forecast, we get the maximum value for provisioning
+
+            if prediction > (max(prev_usage) * self.LIMIT_FACTOR_PREV_USAGE):
+                prediction = max(prev_usage) * self.LIMIT_FACTOR_PREV_USAGE  # to avoid strange behaviour at the beginning
+            # if prediction < (min(prev_usage)*LIMIT_FACTOR_PREV_USAGE):
+            #     print("strange min behaviour ", i * window*15)
+            #     prediction = max(prev_usage) #to avoid strange behaviour at the beginning
+
+        return prediction, forecast, history
+
+    def dynamic_recommend(self, trace, observation_window=(4 * 60) * 1):
+
+        default_window =20
+
+        trace_len = len(trace)
+        forecasted_request = np.zeros(trace_len)
+        forecasted_predicted = np.zeros(trace_len)
+        forecasted_request[:default_window] = self.default_request
+        forecasted_predicted[:default_window] = self.default_request
+
+        idx_init = 0
+        idx_end = default_window
+
+        while(idx_end<trace_len):
+            print(idx_init, idx_end)
+            pre_step_idxs = range(idx_init, idx_end)  # range of previous indexes (granular)
+            previous_usage = trace[pre_step_idxs]
+
+            dynamic_request, dynamic_forecast, period = self.dynamic_forecast_segment(trace, idx_init, idx_end, default_window,observation_window,previous_usage)
+            if idx_end + period < trace_len:
+                cur_step_idxs = range(idx_end, idx_end+period)  # current steps to provision
+                idx_init =cur_step_idxs[0]
+                idx_end = cur_step_idxs[-1]
+            else:  # if we arrive to the end of the trace
+                cur_step_idxs = range(idx_end, trace_len)
+                idx_init =cur_step_idxs[0]
+                idx_end = cur_step_idxs[-1]
+
+            forecasted_request[cur_step_idxs], forecasted_predicted[cur_step_idxs] = dynamic_request,dynamic_forecast[:(idx_end-idx_init)+1]
+            if idx_init == idx_end: break
         return forecasted_request, forecasted_predicted

@@ -17,12 +17,11 @@ from ThetaScan.ThetaModel import *
 def main():
 	
 	## 0. Configuration
-	N = 3 #number of traces to generate
+	N = 1 #number of traces to generate
 	ts_len = 2000 # length of time series
 
 	## 1. Generate synthetic dataset
-	ts = generate_ts_dataset(N, ts_len)
-	trace = ts[2]
+	data = generate_ts_dataset(N, ts_len)
 	#trace_train = trace[:int(ts_len*0.75)]
 
 	#th = ThetaModel()
@@ -30,11 +29,12 @@ def main():
 	#th.fit(trace_train,20)
 	#full_trace_pred, y_pred = th.forecast(len(fh))
 
-	ts = ThetaScan()
-	forecasted_request, forecasted_predicted = ts.recommend(trace[-500:])
-	plt.plot(trace[-500:])
-	plt.plot(forecasted_predicted)
-	plt.show()
+	TS = ThetaScan()
+	for trace in data:
+		forecasted_request, forecasted_predicted = TS.dynamic_recommend(trace[-1000:])
+		plt.plot(trace[-1000:])
+		plt.plot(forecasted_request[-1000:])
+		plt.show()
 
 
 

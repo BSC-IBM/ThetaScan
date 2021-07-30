@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy import signal
+import random
 import statsmodels
 import statsmodels.api as sm
 import sktime
@@ -13,7 +14,7 @@ try:
 except:
     from sktime.transformers.single_series.detrend import Detrender
 
-def generate_ts(ts_type, ts_len, usage_mean=200, usage_std=10, slope=0.15, period=20, spike_mean=800, spike_ratio=0.5):
+def generate_ts(ts_type, ts_len, usage_mean=200, usage_std=10, slope=0.15, period=33, spike_mean=800, spike_ratio=0.5):
     trace = np.zeros(ts_len)
 
     if ts_type == "stationary":
@@ -25,6 +26,8 @@ def generate_ts(ts_type, ts_len, usage_mean=200, usage_std=10, slope=0.15, perio
         trace = np.random.normal(usage_mean, usage_std, ts_len)
         trace = trace + trend_ts
     elif ts_type == "periodic":
+        #period = random.randint(10,90)
+        print("period: ", period)
         periodic_ts = np.random.normal(usage_mean, usage_std, ts_len)
         trace_idx = np.arange(ts_len)
         periodic_cycle = period / spike_ratio
@@ -39,7 +42,7 @@ def generate_ts(ts_type, ts_len, usage_mean=200, usage_std=10, slope=0.15, perio
     return trace
 
 def generate_ts_dataset(N, ts_len):
-    ts_types = ["stationary", "trending", "periodic"]
+    ts_types = ["periodic"]#["stationary", "trending", "periodic"]
     ts_dataset = []
     for i in range(N):
         ts_dataset.append(generate_ts(ts_types[i%len(ts_types)], ts_len))
