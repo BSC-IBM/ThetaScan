@@ -5,8 +5,8 @@ from matplotlib import pyplot as plt
 # -------------------------------------------------------------------------------
 # Other libraries and tools
 # -------------------------------------------------------------------------------
-from ThetaScan.utilities import *
-from ThetaScan.ThetaModel import ThetaModel
+from utilities import *
+from ThetaModel import ThetaModel
 
 
 class ThetaScan():
