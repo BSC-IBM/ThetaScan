@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy import signal
 import random
+import matplotlib.pyplot as plt
 import statsmodels
 import statsmodels.api as sm
 import sktime
@@ -14,20 +15,24 @@ try:
 except:
     from sktime.transformers.single_series.detrend import Detrender
 
-def generate_ts(ts_type, ts_len, usage_mean=200, usage_std=10, slope=0.15, period=33, spike_mean=800, spike_ratio=0.5):
+def generate_ts(ts_type, ts_len, usage_mean=200, usage_std=10, spike_mean=800, spike_ratio=0.5):
     trace = np.zeros(ts_len)
 
     if ts_type == "stationary":
+        usage_mean = random.randint(100,1000)
+        print("Generating stationary trace centered at {}...".format(usage_mean))
         trace = np.random.normal(usage_mean, usage_std, ts_len)
         trace = np.clip(trace, 0.1,None)
     elif ts_type == "trending":
-        usage_std = 10
-        trend_ts = usage_mean * slope * np.arange(ts_len) / period
+        usage_mean = random.randint(100, 1000)
+        slope = random.randint(10,90)/ 100
+        print("Generating trending trace with slope {} and intercept {}...".format(slope, usage_mean))
+        trend_ts = usage_mean + slope * np.arange(ts_len)
         trace = np.random.normal(usage_mean, usage_std, ts_len)
         trace = trace + trend_ts
     elif ts_type == "periodic":
-        #period = random.randint(10,90)
-        print("period: ", period)
+        period = random.randint(10,50)
+        print("Generating periodic trace with period {}".format(period))
         periodic_ts = np.random.normal(usage_mean, usage_std, ts_len)
         trace_idx = np.arange(ts_len)
         periodic_cycle = period / spike_ratio
@@ -41,12 +46,39 @@ def generate_ts(ts_type, ts_len, usage_mean=200, usage_std=10, slope=0.15, perio
 
     return trace
 
-def generate_ts_dataset(N, ts_len):
-    ts_types = ["periodic"]#["stationary", "trending", "periodic"]
+def generate_ts_dataset(N, ts_len, ts_types = ["stationary", "trending", "periodic"] ):
     ts_dataset = []
+    ts_class = []
     for i in range(N):
         ts_dataset.append(generate_ts(ts_types[i%len(ts_types)], ts_len))
-    return ts_dataset
+        ts_class.append(ts_types[i%len(ts_types)])
+    return ts_dataset, ts_class
+
+def plot_trace(trace, plt_name="trace", y_label="CPU (milicores)", trace_legend="CPU Usage"):
+    trace_len = len(trace)
+    trace_idx = np.arange(trace_len) * 15 #set index 0,15,30,45,...,7470,7485
+    trace_pd = pd.DataFrame({trace_legend: trace}, index=trace_idx)
+    ax = trace_pd.plot()
+    ax.set_xlabel("Time (seconds)")
+    ax.set_ylabel(y_label)
+    ax.set_title(plt_name)
+    #if plt_name == "trending trace": ax.legend(loc='lower right')
+    #else: ax.legend(loc='upper right')
+    plt.show()
+
+def plot_recommendations(trace, forecast, request, plt_name="trace", y_label="CPU (milicores)", trace_legend="CPU Usage"):
+    trace_len = len(trace)
+    trace_idx = np.arange(trace_len) * 15 #set index 0,15,30,45,...,7470,7485
+    trace_pd = pd.DataFrame({trace_legend: trace,"ThetaScan forecasted request": request, "ThetaScan forecasted predicted": forecast}, index=trace_idx)
+    ax = trace_pd.plot()
+    ax.set_xlabel("Time (seconds)")
+    ax.set_ylabel(y_label)
+    ax.set_title(plt_name)
+    if plt_name == "trending trace": ax.legend(loc='lower right')
+    else: ax.legend(loc='upper right')
+    plt.show()
+
+
 
 def convolution_filter(y, period):
     # Prepare Filter

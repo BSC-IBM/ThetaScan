@@ -18,10 +18,10 @@ def main():
 	
 	## 0. Configuration
 	N = 1 #number of traces to generate
-	ts_len = 2000 # length of time series
+	ts_len = 1000 # length of time series
 
 	## 1. Generate synthetic dataset
-	data = generate_ts_dataset(N, ts_len)
+	data, names = generate_ts_dataset(N, ts_len)
 	#trace_train = trace[:int(ts_len*0.75)]
 
 	#th = ThetaModel()
@@ -31,9 +31,9 @@ def main():
 
 	TS = ThetaScan()
 	for trace in data:
-		forecasted_request, forecasted_predicted = TS.dynamic_recommend(trace[-1000:])
-		plt.plot(trace[-1000:])
-		plt.plot(forecasted_request[-1000:])
+		forecasted_request, forecasted_predicted = TS.dynamic_recommend(trace)
+		plt.plot(trace)
+		plt.plot(forecasted_request)
 		plt.show()
 
 

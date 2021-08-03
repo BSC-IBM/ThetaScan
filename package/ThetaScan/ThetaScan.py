@@ -5,8 +5,8 @@ from matplotlib import pyplot as plt
 # -------------------------------------------------------------------------------
 # Other libraries and tools
 # -------------------------------------------------------------------------------
-from utilities import *
-from ThetaModel import ThetaModel
+from ThetaScan.utilities import *
+from ThetaScan.ThetaModel import ThetaModel
 
 
 class ThetaScan():
@@ -210,7 +210,6 @@ class ThetaScan():
         idx_end = default_window
 
         while(idx_end<trace_len):
-            print(idx_init, idx_end)
             pre_step_idxs = range(idx_init, idx_end)  # range of previous indexes (granular)
             previous_usage = trace[pre_step_idxs]
 
