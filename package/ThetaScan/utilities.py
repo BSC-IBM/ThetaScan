@@ -74,8 +74,11 @@ def plot_recommendations(trace, forecast, request, plt_name="trace", y_label="CP
     ax.set_xlabel("Time (seconds)")
     ax.set_ylabel(y_label)
     ax.set_title(plt_name)
-    if plt_name == "trending trace": ax.legend(loc='lower right')
-    else: ax.legend(loc='upper right')
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    fig = plt.gcf()
+    fig.set_size_inches(10, 4)
     plt.show()
 
 
