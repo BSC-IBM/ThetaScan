@@ -1,18 +1,4 @@
-
-#-------------------------------------------------------------------------------
-# Import AI4DL
-#-------------------------------------------------------------------------------
-
-import ThetaScan
-from ThetaScan.ThetaScan import ThetaScan
-
-from matplotlib import pyplot as plt
-from ThetaScan.utilities import *
-from ThetaScan.ThetaModel import *
-
-#-------------------------------------------------------------------------------
-# Main Program
-#-------------------------------------------------------------------------------
+from ThetaScan.ThetaScan import *
 
 def main():
 	
@@ -22,23 +8,14 @@ def main():
 
 	## 1. Generate synthetic dataset
 	data, names = generate_ts_dataset(N, ts_len)
-	#trace_train = trace[:int(ts_len*0.75)]
 
-	#th = ThetaModel()
-	#fh = np.arange(20) + 1
-	#th.fit(trace_train,20)
-	#full_trace_pred, y_pred = th.forecast(len(fh))
-
+	## 2. Recommend
 	TS = ThetaScan()
 	for trace in data:
 		forecasted_request, forecasted_predicted = TS.dynamic_recommend(trace)
 		plt.plot(trace)
 		plt.plot(forecasted_request)
 		plt.show()
-
-
-
-	## 4. Plotting
 
 if __name__ == "__main__":
 	main()

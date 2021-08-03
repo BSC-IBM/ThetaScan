@@ -3,13 +3,7 @@ import pandas as pd
 from scipy import signal
 import random
 import matplotlib.pyplot as plt
-import statsmodels
-import statsmodels.api as sm
-import sktime
-from sktime.forecasting.model_selection import temporal_train_test_split
-from sktime.performance_metrics.forecasting import smape_loss
-from sktime.forecasting.trend import PolynomialTrendForecaster
-from warnings import filterwarnings
+
 try:
     from sktime.transformations.series.detrend import Detrender
 except:

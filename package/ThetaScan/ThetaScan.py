@@ -1,7 +1,12 @@
 # -------------------------------------------------------------------------------
 # General Libraries
 # -------------------------------------------------------------------------------
-from matplotlib import pyplot as plt
+import statsmodels.api as sm
+from sktime.forecasting.model_selection import temporal_train_test_split
+from sktime.performance_metrics.forecasting import smape_loss
+from sktime.forecasting.trend import PolynomialTrendForecaster
+from warnings import filterwarnings
+
 # -------------------------------------------------------------------------------
 # Other libraries and tools
 # -------------------------------------------------------------------------------
