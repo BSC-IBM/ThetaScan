@@ -3,7 +3,7 @@ from ThetaScan.ThetaScan import *
 def main():
 	
 	## 0. Configuration
-	N = 1 #number of traces to generate
+	N = 4 #number of traces to generate
 	ts_len = 1000 # length of time series
 
 	## 1. Generate synthetic dataset
@@ -15,6 +15,7 @@ def main():
 		forecasted_request, forecasted_predicted = TS.dynamic_recommend(trace)
 		plt.plot(trace)
 		plt.plot(forecasted_request)
+		plt.plot(forecasted_predicted)
 		plt.show()
 
 if __name__ == "__main__":
