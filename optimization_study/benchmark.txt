@@ -1,0 +1,239 @@
+Timer unit: 1e-06 s
+
+Total time: 44.7865 s
+File: ../package/ThetaScan/ThetaModel.py
+Function: fit at line 7
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+     7                                               @profile
+     8                                               def fit (self, y, sp):
+     9                                           
+    10                                                   ## 1. Deseasonalize & Detrend
+    11     13058   35744349.0   2737.4     79.8          season = seasonal_decompose(y, sp)            	                       ### THIS IS THE SEASON
+    12     13058     517560.0     39.6      1.2          deseason = deseasonalize(y, season)                                      ### THIS IS THE DESEASONALIZED AND DETRENDED
+    13                                           
+    14                                                   ## 2. Obtain Drift (general Trend) for later
+    15     13058    2778151.0    212.8      6.2          slope, intercept, drift = compute_trend(deseason)                              ### THIS IS THE SLOPE, INTERCEPT AND DRIFT
+    16                                           
+    17                                                   ## 3. Obtain Simple Exponential Smoothing (SES)
+    18     13058    5621212.0    430.5     12.6          fitted, y_next = compute_ses(deseason, self.alpha)                                  ### THIS IS THE MODEL (Fitted, Next)
+    19                                           
+    20                                                   ## Save "Model"
+    21     13058      21219.0      1.6      0.0          self.season = season
+    22     13058      15360.0      1.2      0.0          self.deseason = deseason
+    23     13058       9107.0      0.7      0.0          self.slope = slope
+    24     13058       9281.0      0.7      0.0          self.intercept = intercept
+    25     13058      19673.0      1.5      0.0          self.drift = drift
+    26     13058      21664.0      1.7      0.0          self.fitted = fitted
+    27     13058       7965.0      0.6      0.0          self.next = y_next
+    28     13058       8146.0      0.6      0.0          self.dataset = y
+    29     13058      12764.0      1.0      0.0          self.last = len(y)
+
+Total time: 45.7402 s
+File: ../package/ThetaScan/ThetaScan.py
+Function: scan at line 12
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    12                                               @profile
+    13                                               def scan(self,trace):
+    14       184        363.0      2.0      0.0          errors = []
+    15       184        250.0      1.4      0.0          test_size = len(trace) //8 # size of the test set for testing cycles
+    16       184        120.0      0.7      0.0          max_period = len(trace) //3 # max period to be examined
+    17                                           
+    18       184        338.0      1.8      0.0          y_train, y_test = trace[:-test_size],trace[-test_size:]
+    19       184        196.0      1.1      0.0          period_values = range(1, max_period)
+    20                                           
+    21     12882       7580.0      0.6      0.0          for sp_val in period_values:
+    22     12698   43876807.0   3455.4     95.9              self.forecaster.fit(y_train, sp=sp_val)
+    23     12698    1454283.0    114.5      3.2              y_pred = self.forecaster.forecast(test_size)[1]
+    24     12698     378070.0     29.8      0.8              current_error = smape_loss(y_pred, y_test)
+    25     12698      16905.0      1.3      0.0              errors.append(current_error)
+    26                                           
+    27       184       5165.0     28.1      0.0          period = period_values[np.argmin(errors)]
+    28       184        111.0      0.6      0.0          return period, errors
+
+Total time: 48.6795 s
+File: ../package/ThetaScan/ThetaScan.py
+Function: dynamic_recommend at line 145
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   145                                               @profile
+   146                                               def dynamic_recommend(self, trace, observation_window=(4 * 60) * 1):
+   147         4        238.0     59.5      0.0          default_window =20
+   148         4          5.0      1.2      0.0          trace_len = len(trace)
+   149         4         16.0      4.0      0.0          forecasted_request = np.zeros(trace_len)
+   150         4         11.0      2.8      0.0          forecasted_predicted = np.zeros(trace_len)
+   151         4         13.0      3.2      0.0          forecasted_request[:default_window] = self.default_request
+   152         4          5.0      1.2      0.0          forecasted_predicted[:default_window] = self.default_request
+   153                                           
+   154         4          1.0      0.2      0.0          idx_init = 0
+   155         4          0.0      0.0      0.0          idx_end = default_window
+   156                                           
+   157       184         82.0      0.4      0.0          while(idx_end<trace_len):
+   158       184        163.0      0.9      0.0              pre_step_idxs = range(idx_init, idx_end)  # range of previous indexes (granular)
+   159       184       2226.0     12.1      0.0              previous_usage = trace[pre_step_idxs]
+   160                                           
+   161       184   48670161.0 264511.7    100.0              dynamic_request, dynamic_forecast, period = self.dynamic_forecast_segment(trace, idx_init, idx_end, default_window,observation_window,previous_usage)
+   162       184        161.0      0.9      0.0              if idx_end + period < trace_len:
+   163       176        248.0      1.4      0.0                  cur_step_idxs = range(idx_end, idx_end+period)  # current steps to provision
+   164       176        167.0      0.9      0.0                  idx_init =cur_step_idxs[0]
+   165       176        154.0      0.9      0.0                  idx_end = cur_step_idxs[-1]
+   166                                                       else:  # if we arrive to the end of the trace
+   167         8          9.0      1.1      0.0                  cur_step_idxs = range(idx_end, trace_len)
+   168         8          5.0      0.6      0.0                  idx_init =cur_step_idxs[0]
+   169         8          3.0      0.4      0.0                  idx_end = cur_step_idxs[-1]
+   170                                           
+   171       184       5748.0     31.2      0.0              forecasted_request[cur_step_idxs], forecasted_predicted[cur_step_idxs] = dynamic_request,dynamic_forecast[:(idx_end-idx_init)+1]
+   172       184        117.0      0.6      0.0              if idx_init == idx_end: break
+   173         4          1.0      0.2      0.0          return forecasted_request, forecasted_predicted
+
+Total time: 3.77236 s
+File: ../package/ThetaScan/utilities.py
+Function: convolution_filter at line 89
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    89                                           @profile
+    90                                           def convolution_filter(y, period):
+    91                                               # Prepare Filter
+    92     13058      13821.0      1.1      0.4      if period % 2 == 0:
+    93      6515      82534.0     12.7      2.2          filt = np.array([.5] + [1] * (period - 1) + [.5]) / period
+    94                                               else:
+    95      6543     112943.0     17.3      3.0          filt = np.repeat(1. / period, period)
+    96                                           
+    97                                               # Signal Convolution
+    98     13058    1146458.0     87.8     30.4      conv_signal = signal.convolve(y, filt, mode='valid')
+    99                                           
+   100                                               # Padding (2-Sided Convolution)
+   101     13058      68707.0      5.3      1.8      trim_head = int(np.ceil(len(filt) / 2.) - 1) or None
+   102     13058      34882.0      2.7      0.9      trim_tail = int(np.ceil(len(filt) / 2.) - len(filt) % 2) or None
+   103                                           
+   104     13058       8651.0      0.7      0.2      if trim_head:
+   105     12873    1279742.0     99.4     33.9          conv_signal = np.r_[conv_signal, [np.nan] * trim_tail]
+   106     13058      10530.0      0.8      0.3      if trim_tail:
+   107     12873    1004962.0     78.1     26.6          conv_signal = np.r_[[np.nan] * trim_head, conv_signal]
+   108                                           
+   109     13058       9127.0      0.7      0.2      return conv_signal
+
+Total time: 4.19725 s
+File: ../package/ThetaScan/utilities.py
+Function: compute_ses at line 111
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   111                                           @profile
+   112                                           def compute_ses(y, alpha):
+   113     13058       8146.0      0.6      0.2      nobs = len(y)  # X from the slides
+   114                                           
+   115                                               # Forecast Array
+   116     13058     147867.0     11.3      3.5      fh = np.full(nobs + 1, np.nan)  # Initialize the Forecast array to NaNs # S from the slides
+   117     13058      14604.0      1.1      0.3      fh[0] = y[0]  # Initialization of first value (instead of NaN)
+   118     13058       8307.0      0.6      0.2      fh[1] = y[0]  # Initialization of first forecast
+   119                                           
+   120                                               # Simple Exponential Smoothing
+   121   2614663     934279.0      0.4     22.3      for t in range(2, nobs + 1):
+   122   2601605    3059194.0      1.2     72.9          fh[t] = alpha * y[t - 1] + (1 - alpha) * fh[t - 1]  # s[t] = alpha * y....
+   123                                           
+   124     13058      24853.0      1.9      0.6      return (fh[:nobs], fh[nobs])
+
+Total time: 0.159709 s
+File: ../package/ThetaScan/utilities.py
+Function: forecast_ses at line 126
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   126                                           @profile
+   127                                           def forecast_ses(fh_next, start, end):
+   128                                               ## Forecast Array
+   129     12874     134316.0     10.4     84.1      fh_forecast = np.full(end - start, np.nan)
+   130     12874      20697.0      1.6     13.0      fh_forecast[:] = fh_next
+   131                                           
+   132     12874       4696.0      0.4      2.9      return fh_forecast
+
+Total time: 35.5808 s
+File: ../package/ThetaScan/utilities.py
+Function: seasonal_decompose at line 134
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   134                                           @profile
+   135                                           def seasonal_decompose(y, period):
+   136     13058      10679.0      0.8      0.0      nobs = len(y)
+   137                                           
+   138                                               # At least two observable periods in the trace
+   139     13058      10734.0      0.8      0.0      if nobs < 2 * period:
+   140                                                   raise ValueError('lengh of signal must be larger than (2 * period)')
+   141                                           
+   142                                               # Convolution to retrieve step-by-step trend
+   143     13058    3933176.0    301.2     11.1      trend = convolution_filter(y, period)
+   144                                           
+   145                                               # Multiplicative de-trending to Retrieve average Season (period pattern)
+   146     13058      40347.0      3.1      0.1      detrended = y / trend
+   147     13058   31129788.0   2384.0     87.5      period_averages = np.array([np.nanmean(detrended[i::period], axis=0) for i in range(period)])
+   148     13058     446912.0     34.2      1.3      period_averages /= np.mean(period_averages, axis=0)
+   149                                           
+   150     13058       9204.0      0.7      0.0      return period_averages  # "season" for deseasonalize
+
+Total time: 0.439527 s
+File: ../package/ThetaScan/utilities.py
+Function: deseasonalize at line 152
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   152                                           @profile
+   153                                           def deseasonalize(y, season):
+   154     13058      11972.0      0.9      2.7      nobs = len(y)
+   155     13058       5894.0      0.5      1.3      period = len(season)
+   156                                           
+   157     13058     384525.0     29.4     87.5      seasonal = np.tile(season, (nobs // period) + 1).T[:nobs]
+   158     13058      37136.0      2.8      8.4      return y / seasonal
+
+Total time: 0.417652 s
+File: ../package/ThetaScan/utilities.py
+Function: reseasonalize at line 160
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   160                                           @profile
+   161                                           def reseasonalize(y, season, start):
+   162     12874       7876.0      0.6      1.9      nobs = len(y)
+   163     12874       6454.0      0.5      1.5      period = len(season)
+   164                                           
+   165     12874       8886.0      0.7      2.1      shift = period - (start % period)
+   166     12874     101857.0      7.9     24.4      season = np.concatenate((season[-shift:], season[:-shift]))
+   167                                           
+   168     12874     254350.0     19.8     60.9      seasonal = np.tile(season, (nobs // period) + 1).T[:nobs]
+   169     12874      38229.0      3.0      9.2      return y * seasonal
+
+Total time: 2.68312 s
+File: ../package/ThetaScan/utilities.py
+Function: compute_trend at line 171
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   171                                           @profile
+   172                                           def compute_trend(y):
+   173     13058    2507779.0    192.0     93.5      lm = np.polyfit(np.arange(len(y)), y, 1)
+   174                                           
+   175     13058      19175.0      1.5      0.7      slope = lm[0]
+   176     13058       6870.0      0.5      0.3      intercept = lm[1]
+   177     13058     142583.0     10.9      5.3      drift = (slope * np.arange(0, len(y))) + intercept
+   178                                           
+   179     13058       6718.0      0.5      0.3      return (slope, intercept, drift)
+
+Total time: 0.587566 s
+File: ../package/ThetaScan/utilities.py
+Function: retrend at line 181
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   181                                           @profile
+   182                                           def retrend(y, start, end, slope, intercept):
+   183     12874     124671.0      9.7     21.2      drift = (slope * np.arange(start, end)) + intercept
+   184                                           
+   185     12874     456486.0     35.5     77.7      pred = y * (drift / np.mean(y))  # CHECK - Find a better way to estimate the general reconstruction...
+   186     12874       6409.0      0.5      1.1      return pred
+

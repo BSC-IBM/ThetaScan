@@ -1,0 +1,182 @@
+Timer unit: 1e-06 s
+
+Total time: 5.91017 s
+File: ../package/ThetaScan/ThetaModel.py
+Function: fit at line 9
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+     9                                               @profile
+    10                                               def fit (self, y, sp):
+    11                                           
+    12                                                   ## 1. Deseasonalize & Detrend
+    13     12943    3611321.0    279.0     61.1          season = seasonal_decompose(y, sp)            	                       ### THIS IS THE SEASON
+    14     12943     322297.0     24.9      5.5          deseason = deseasonalize(y, season)                                      ### THIS IS THE DESEASONALIZED AND DETRENDED
+    15                                           
+    16                                                   ## 2. Obtain Drift (general Trend) for later
+    17     12943    1778977.0    137.4     30.1          slope, intercept, drift = compute_trend(deseason)                              ### THIS IS THE SLOPE, INTERCEPT AND DRIFT
+    18                                           
+    19                                                   ## 3. Obtain Simple Exponential Smoothing (SES)
+    20                                                   #fitted, y_next = compute_ses(deseason, self.alpha)                                  ### THIS IS THE MODEL (Fitted, Next)
+    21     12943     107351.0      8.3      1.8          fitted, y_next = utilities_cy.compute_ses(deseason, self.alpha)                                  ### THIS IS THE MODEL (Fitted, Next)
+    22                                           
+    23                                                   ## Save "Model"
+    24     12943      10737.0      0.8      0.2          self.season = season
+    25     12943      16935.0      1.3      0.3          self.deseason = deseason
+    26     12943       7124.0      0.6      0.1          self.slope = slope
+    27     12943       6416.0      0.5      0.1          self.intercept = intercept
+    28     12943       9815.0      0.8      0.2          self.drift = drift
+    29     12943      17688.0      1.4      0.3          self.fitted = fitted
+    30     12943       6111.0      0.5      0.1          self.next = y_next
+    31     12943       6415.0      0.5      0.1          self.dataset = y
+    32     12943       8987.0      0.7      0.2          self.last = len(y)
+
+Total time: 2.90706 s
+File: ../package/ThetaScan/utilities.py
+Function: convolution_filter at line 90
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    90                                           @profile
+    91                                           def convolution_filter(y, period):
+    92                                               # Prepare Filter
+    93     12943       9848.0      0.8      0.3      if period % 2 == 0:
+    94      6469      61609.0      9.5      2.1          filt = np.array([.5] + [1] * (period - 1) + [.5]) / period
+    95                                               else:
+    96      6474      75548.0     11.7      2.6          filt = np.repeat(1. / period, period)
+    97                                           
+    98                                               # Signal Convolution
+    99     12943     828685.0     64.0     28.5      conv_signal = signal.convolve(y, filt, mode='valid')
+   100                                           
+   101                                               # Padding (2-Sided Convolution)
+   102     12943      45631.0      3.5      1.6      trim_head = int(np.ceil(len(filt) / 2.) - 1) or None
+   103     12943      30392.0      2.3      1.0      trim_tail = int(np.ceil(len(filt) / 2.) - len(filt) % 2) or None
+   104                                           
+   105     12943       7479.0      0.6      0.3      if trim_head:
+   106     12760     962702.0     75.4     33.1          conv_signal = np.r_[conv_signal, [np.nan] * trim_tail]
+   107     12943       8015.0      0.6      0.3      if trim_tail:
+   108     12760     869717.0     68.2     29.9          conv_signal = np.r_[[np.nan] * trim_head, conv_signal]
+   109                                           
+   110     12943       7433.0      0.6      0.3      return conv_signal
+
+Total time: 0 s
+File: ../package/ThetaScan/utilities.py
+Function: compute_ses at line 112
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   112                                           @profile
+   113                                           def compute_ses(y, alpha):
+   114                                               nobs = len(y)  # X from the slides
+   115                                           
+   116                                               # Forecast Array
+   117                                               fh = np.full(nobs + 1, np.nan)  # Initialize the Forecast array to NaNs # S from the slides
+   118                                               fh[0] = y[0]  # Initialization of first value (instead of NaN)
+   119                                               fh[1] = y[0]  # Initialization of first forecast
+   120                                           
+   121                                               # Simple Exponential Smoothing
+   122                                               for t in range(2, nobs + 1):
+   123                                                   fh[t] = alpha * y[t - 1] + (1 - alpha) * fh[t - 1]  # s[t] = alpha * y....
+   124                                           
+   125                                               return (fh[:nobs], fh[nobs])
+
+Total time: 0.121145 s
+File: ../package/ThetaScan/utilities.py
+Function: forecast_ses at line 127
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   127                                           @profile
+   128                                           def forecast_ses(fh_next, start, end):
+   129                                               ## Forecast Array
+   130     12760      98239.0      7.7     81.1      fh_forecast = np.full(end - start, np.nan)
+   131     12760      19122.0      1.5     15.8      fh_forecast[:] = fh_next
+   132                                           
+   133     12760       3784.0      0.3      3.1      return fh_forecast
+
+Total time: 3.52856 s
+File: ../package/ThetaScan/utilities.py
+Function: seasonal_decompose at line 135
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   135                                           @profile
+   136                                           def seasonal_decompose(y, period):
+   137     12943       7404.0      0.6      0.2      nobs = len(y)
+   138                                           
+   139                                               # At least two observable periods in the trace
+   140     12943       8256.0      0.6      0.2      if nobs < 2 * period:
+   141                                                   raise ValueError('lengh of signal must be larger than (2 * period)')
+   142                                           
+   143                                               # Convolution to retrieve step-by-step trend
+   144     12943    3022041.0    233.5     85.6      trend = convolution_filter(y, period)
+   145                                           
+   146                                               # Multiplicative de-trending to Retrieve average Season (period pattern)
+   147     12943      24939.0      1.9      0.7      detrended = y / trend
+   148                                               #period_averages = np.array([np.nanmean(detrended[i::period], axis=0) for i in range(period)])
+   149     12943     155476.0     12.0      4.4      period_averages = utilities_cy.compute_period_averages(detrended, period)
+   150                                           
+   151     12943     304517.0     23.5      8.6      period_averages /= np.mean(period_averages, axis=0)
+   152                                           
+   153     12943       5923.0      0.5      0.2      return period_averages  # "season" for deseasonalize
+
+Total time: 0.270533 s
+File: ../package/ThetaScan/utilities.py
+Function: deseasonalize at line 155
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   155                                           @profile
+   156                                           def deseasonalize(y, season):
+   157     12943       6665.0      0.5      2.5      nobs = len(y)
+   158     12943       5075.0      0.4      1.9      period = len(season)
+   159                                           
+   160     12943     238885.0     18.5     88.3      seasonal = np.tile(season, (nobs // period) + 1).T[:nobs]
+   161     12943      19908.0      1.5      7.4      return y / seasonal
+
+Total time: 0.270266 s
+File: ../package/ThetaScan/utilities.py
+Function: reseasonalize at line 163
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   163                                           @profile
+   164                                           def reseasonalize(y, season, start):
+   165     12760       6512.0      0.5      2.4      nobs = len(y)
+   166     12760       5370.0      0.4      2.0      period = len(season)
+   167                                           
+   168     12760       6761.0      0.5      2.5      shift = period - (start % period)
+   169     12760      60322.0      4.7     22.3      season = np.concatenate((season[-shift:], season[:-shift]))
+   170                                           
+   171     12760     172437.0     13.5     63.8      seasonal = np.tile(season, (nobs // period) + 1).T[:nobs]
+   172     12760      18864.0      1.5      7.0      return y * seasonal
+
+Total time: 1.71704 s
+File: ../package/ThetaScan/utilities.py
+Function: compute_trend at line 174
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   174                                           @profile
+   175                                           def compute_trend(y):
+   176     12943    1587706.0    122.7     92.5      lm = np.polyfit(np.arange(len(y)), y, 1)
+   177                                           
+   178     12943      13208.0      1.0      0.8      slope = lm[0]
+   179     12943       6090.0      0.5      0.4      intercept = lm[1]
+   180     12943     104130.0      8.0      6.1      drift = (slope * np.arange(0, len(y))) + intercept
+   181                                           
+   182     12943       5904.0      0.5      0.3      return (slope, intercept, drift)
+
+Total time: 0.383859 s
+File: ../package/ThetaScan/utilities.py
+Function: retrend at line 184
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   184                                           @profile
+   185                                           def retrend(y, start, end, slope, intercept):
+   186     12760      79714.0      6.2     20.8      drift = (slope * np.arange(start, end)) + intercept
+   187                                           
+   188     12760     299124.0     23.4     77.9      pred = y * (drift / np.mean(y))  # CHECK - Find a better way to estimate the general reconstruction...
+   189     12760       5021.0      0.4      1.3      return pred
+
