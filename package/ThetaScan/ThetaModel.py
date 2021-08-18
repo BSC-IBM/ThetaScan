@@ -1,10 +1,12 @@
 from ThetaScan.utilities import *
 
+from ThetaScan import utilities_cy
+
 class ThetaModel:
     def __init__(self, alpha = 0.2):
         self.alpha = alpha
 
-
+    @profile
     def fit (self, y, sp):
 
         ## 1. Deseasonalize & Detrend
@@ -15,7 +17,8 @@ class ThetaModel:
         slope, intercept, drift = compute_trend(deseason)                              ### THIS IS THE SLOPE, INTERCEPT AND DRIFT
 
         ## 3. Obtain Simple Exponential Smoothing (SES)
-        fitted, y_next = compute_ses(deseason, self.alpha)                                  ### THIS IS THE MODEL (Fitted, Next)
+        #fitted, y_next = compute_ses(deseason, self.alpha)                                  ### THIS IS THE MODEL (Fitted, Next)
+        fitted, y_next = utilities_cy.compute_ses(deseason, self.alpha)                                  ### THIS IS THE MODEL (Fitted, Next)
 
         ## Save "Model"
         self.season = season
