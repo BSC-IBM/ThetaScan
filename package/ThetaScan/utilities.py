@@ -4,6 +4,7 @@ import random
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 
+from ThetaScan import utilities_cy
 
 def generate_ts(ts_type, ts_len, usage_mean=200, usage_std=10, spike_mean=800, spike_ratio=0.5):
     trace = np.zeros(ts_len)
@@ -86,7 +87,7 @@ def smape_loss(y_pred,y_test):
     denominator = np.abs(y_test) + np.abs(y_pred)
     return np.mean(2.0 * nominator / denominator) #the 2 in the nominator is because of symmetry
 
-
+@profile
 def convolution_filter(y, period):
     # Prepare Filter
     if period % 2 == 0:
@@ -108,7 +109,7 @@ def convolution_filter(y, period):
 
     return conv_signal
 
-
+@profile
 def compute_ses(y, alpha):
     nobs = len(y)  # X from the slides
 
@@ -123,7 +124,7 @@ def compute_ses(y, alpha):
 
     return (fh[:nobs], fh[nobs])
 
-
+@profile
 def forecast_ses(fh_next, start, end):
     ## Forecast Array
     fh_forecast = np.full(end - start, np.nan)
@@ -131,7 +132,7 @@ def forecast_ses(fh_next, start, end):
 
     return fh_forecast
 
-
+@profile
 def seasonal_decompose(y, period):
     nobs = len(y)
 
@@ -144,12 +145,14 @@ def seasonal_decompose(y, period):
 
     # Multiplicative de-trending to Retrieve average Season (period pattern)
     detrended = y / trend
-    period_averages = np.array([np.nanmean(detrended[i::period], axis=0) for i in range(period)])
+    #period_averages = np.array([np.nanmean(detrended[i::period], axis=0) for i in range(period)])
+    period_averages = utilities_cy.compute_period_averages(detrended, period)
+
     period_averages /= np.mean(period_averages, axis=0)
 
     return period_averages  # "season" for deseasonalize
 
-
+@profile
 def deseasonalize(y, season):
     nobs = len(y)
     period = len(season)
@@ -157,7 +160,7 @@ def deseasonalize(y, season):
     seasonal = np.tile(season, (nobs // period) + 1).T[:nobs]
     return y / seasonal
 
-
+@profile
 def reseasonalize(y, season, start):
     nobs = len(y)
     period = len(season)
@@ -168,7 +171,7 @@ def reseasonalize(y, season, start):
     seasonal = np.tile(season, (nobs // period) + 1).T[:nobs]
     return y * seasonal
 
-
+@profile
 def compute_trend(y):
     lm = np.polyfit(np.arange(len(y)), y, 1)
 
@@ -178,7 +181,7 @@ def compute_trend(y):
 
     return (slope, intercept, drift)
 
-
+@profile
 def retrend(y, start, end, slope, intercept):
     drift = (slope * np.arange(start, end)) + intercept
 

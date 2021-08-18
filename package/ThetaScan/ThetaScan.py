@@ -9,7 +9,7 @@ class ThetaScan():
         self.stat_threshold = stat_threshold
         self.LIMIT_FACTOR_PREV_USAGE = 5  # we can change this constant, we use it to avoid forecasting peaks
 
-
+    #@profile
     def scan(self,trace):
         errors = []
         test_size = len(trace) //8 # size of the test set for testing cycles
@@ -142,6 +142,7 @@ class ThetaScan():
             forecasted_request[cur_step_idxs], forecasted_predicted[cur_step_idxs] = self.forecast_segment(trace, window_size, i,observation_window,previous_usage)
         return forecasted_request, forecasted_predicted
 
+    #@profile
     def dynamic_recommend(self, trace, observation_window=(4 * 60) * 1):
         default_window =20
         trace_len = len(trace)
