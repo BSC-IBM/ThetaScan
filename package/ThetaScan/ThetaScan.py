@@ -65,8 +65,11 @@ class ThetaScan():
         stationary (bool): the trace is stationary (true/false)
         
         '''
-        adf = sm.tsa.stattools.adfuller(trace)
-        stationary = adf[1] < self.stat_threshold
+        try:
+            adf = sm.tsa.stattools.adfuller(trace)
+            stationary = adf[1] < self.stat_threshold
+        except:
+            stationary = False
         return stationary
 
     def detect_stationarity(self,trace):
@@ -195,7 +198,8 @@ class ThetaScan():
         else:
             if (scenario == "period" or scenario == "prob.period"):
                 forecast = self.next_step_forecasting_theta(trace[observed_segment_index], period_est, max(period_est, window_size))
-                prediction = max(forecast)
+                #print(period_est, len(forecast))
+                prediction = max(forecast[:window_size])
 
             else:
                 forecast = self.next_step_forecasting_theta(trace[observed_segment_index], window_size, window_size)
