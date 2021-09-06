@@ -1,11 +1,26 @@
 from ThetaScan.utilities import *
 
 class ThetaModel:
+    ''' Custom implementation of the Theta Model.
+    '''
     def __init__(self, alpha = 0.2):
+        '''
+        Parameters
+        ----------
+        alpha (float): constant for the SES forecast
+        '''
         self.alpha = alpha
 
 
     def fit (self, y, sp):
+        ''' 
+        Fit a time series to the Theta Model
+
+        Parameters
+        ----------
+        y (numpy array): time series
+        sp (int): period
+        '''
 
         ## 1. Deseasonalize & Detrend
         season = seasonal_decompose(y, sp)            	                       ### THIS IS THE SEASON
@@ -29,6 +44,16 @@ class ThetaModel:
         self.last = len(y)
 
     def forecast (self, n_forecast):
+        ''' 
+        Forecast a number of steps based on fitted curve.
+
+        Parameters
+        ----------
+        full_trace_pred (numpy array): complete trace with prediction (past + forecasted future)
+        y_pred (numpy array): prediction for the next time steps
+
+        '''
+    
         ## Get new boundaries
         start = self.last
         end = self.last + n_forecast

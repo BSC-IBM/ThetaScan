@@ -6,6 +6,14 @@ import statsmodels.api as sm
 
 
 def generate_ts(ts_type, ts_len, usage_mean=200, usage_std=10, spike_mean=800, spike_ratio=0.5):
+    ''' Generate a synthetic trace.
+        Parameters
+        ----------
+        ts_type (string): type of the synthetic trace that we want to generate (stationary, trending, periodic or sinusoidal).
+        usage_mean (float): mean resource usage
+        usage_std (float): standard deviation of the resource usage
+        spike_ratio (float): ratio at which resource spikes appear
+    '''
     trace = np.zeros(ts_len)
 
     if ts_type == "stationary":
@@ -42,6 +50,13 @@ def generate_ts(ts_type, ts_len, usage_mean=200, usage_std=10, spike_mean=800, s
     return trace
 
 def generate_ts_dataset(N, ts_len, ts_types = ["stationary", "trending", "periodic"] ):
+    ''' Generate a synthetic dataset.
+        Parameters
+        ----------
+        N (int): number of traces in the dataset
+        ts_len (int): length of the time series
+        ts_types (list): types of the synthetic trace that we want to generate (stationary, trending, periodic or sinusoidal).
+    '''
     ts_dataset = []
     ts_class = []
     for i in range(N):
@@ -50,6 +65,15 @@ def generate_ts_dataset(N, ts_len, ts_types = ["stationary", "trending", "period
     return ts_dataset, ts_class
 
 def plot_trace(trace, plt_name="trace", y_label="CPU (milicores)", trace_legend="CPU Usage"):
+    ''' 
+    Plot a resource usage trace
+    Parameters
+    ----------
+    trace (numpy array): resource usage trace that we want to plot
+    plt_name (string): name of the plot
+    y_label (string): label of the y axis
+    trace_legend (string): legend of the plot
+    '''
     trace_len = len(trace)
     trace_idx = np.arange(trace_len) * 15 #set index 0,15,30,45,...,7470,7485
     fig, ax = plt.subplots()
@@ -63,6 +87,20 @@ def plot_trace(trace, plt_name="trace", y_label="CPU (milicores)", trace_legend=
     plt.show()
 
 def plot_recommendations(trace, forecast, request, plt_name="trace", y_label="CPU (milicores)", trace_legend="CPU Usage"):
+    ''' 
+    Plot recommendations for the resource usage trace
+    
+    Parameters
+    ----------
+    trace (numpy array): resource usage trace that we want to plot
+    forecast (numpy array): granular forecast of the trace
+    request (numpy array): requested resource trace 
+    plt_name (string): name of the plot
+    y_label (string): label of the y axis
+    trace_legend (string): legend of the plot
+    
+    '''
+    
     trace_len = len(trace)
     trace_idx = np.arange(trace_len) * 15 #set index 0,15,30,45,...,7470,7485
 
@@ -82,12 +120,34 @@ def plot_recommendations(trace, forecast, request, plt_name="trace", y_label="CP
     plt.show()
 
 def smape_loss(y_pred,y_test):
+    ''' 
+    Symmetric mean absolute percentage error
+    
+    Parameters
+    ----------
+    y_pred (numpy array): prediction 
+    y_test (numpy array): real time series
+    
+    '''
     nominator = np.abs(y_test - y_pred)
     denominator = np.abs(y_test) + np.abs(y_pred)
     return np.mean(2.0 * nominator / denominator) #the 2 in the nominator is because of symmetry
 
 
 def convolution_filter(y, period):
+    ''' 
+    Convolution filter
+    
+    Parameters
+    ----------
+    y (numpy array): time series 
+    period (int): period in the time series
+    
+    Returns
+    -------
+    conv_signal (numpy array): convolved signal
+    
+    '''
     # Prepare Filter
     if period % 2 == 0:
         filt = np.array([.5] + [1] * (period - 1) + [.5]) / period
@@ -110,6 +170,19 @@ def convolution_filter(y, period):
 
 
 def compute_ses(y, alpha):
+    ''' 
+    Compute the Simple Exponential Smoothing (SES)
+    
+    Parameters
+    ----------
+    y (numpy array): time series 
+    alpha (float): constant for computing SES
+    
+    Returns
+    -------
+    fh[:nobs] (numpy array): filtered signal
+    
+    '''
     nobs = len(y)  # X from the slides
 
     # Forecast Array
@@ -125,6 +198,18 @@ def compute_ses(y, alpha):
 
 
 def forecast_ses(fh_next, start, end):
+    ''' 
+    Forecast using the SES model
+    
+    Parameters
+    ----------
+    fh_next (numpy array): forecast of the next forecasting horizon
+    
+    Returns
+    -------
+    fh_forecast (numpy array): forecast
+    
+    '''
     ## Forecast Array
     fh_forecast = np.full(end - start, np.nan)
     fh_forecast[:] = fh_next
@@ -133,6 +218,19 @@ def forecast_ses(fh_next, start, end):
 
 
 def seasonal_decompose(y, period):
+    ''' 
+    Decompose the time series into the seasonal component 
+    
+    Parameters
+    ----------
+    y (numpy array): time series
+    period (int): period of the time series
+    
+    Returns
+    -------
+    period_averages (numpy array): period pattern
+    
+    '''
     nobs = len(y)
 
     # At least two observable periods in the trace
@@ -151,6 +249,19 @@ def seasonal_decompose(y, period):
 
 
 def deseasonalize(y, season):
+    ''' 
+    Remove the seasonal component of a time series
+    
+    Parameters
+    ----------
+    y (numpy array): time series
+    season (numpy array): period pattern
+    
+    Returns
+    -------
+    (numpy array): time series without the seasonal component
+    
+    '''
     nobs = len(y)
     period = len(season)
 
@@ -159,6 +270,19 @@ def deseasonalize(y, season):
 
 
 def reseasonalize(y, season, start):
+    ''' 
+    Add a seasonal component to a time series 
+    
+    Parameters
+    ----------
+    y (numpy array): time series
+    season (numpy array): period pattern
+    start (int): index where to start adding the season
+    
+    Returns
+    -------
+    (numpy array): time series with the seasonal component
+    '''
     nobs = len(y)
     period = len(season)
 
@@ -170,6 +294,20 @@ def reseasonalize(y, season, start):
 
 
 def compute_trend(y):
+    ''' 
+    Compute the trend of a time seris
+    
+    Parameters
+    ----------
+    y (numpy array): time series
+    
+    Returns
+    -------
+    slope (int): slope of the time series
+    intercept (int): slope of the time series 
+    drift (int): drift of the time series
+    
+    '''
     lm = np.polyfit(np.arange(len(y)), y, 1)
 
     slope = lm[0]
@@ -180,7 +318,21 @@ def compute_trend(y):
 
 
 def retrend(y, start, end, slope, intercept):
+    ''' 
+    Add the trending component of the time series
+    
+    Parameters
+    ----------
+    y (numpy array): time series
+    start (int): starting index of the retrending
+    end (int): ending index of the retrending
+    intercept (int): intercept of the trend
+    
+    Returns
+    -------
+    pred (numpy array): time series with the trend added
+    '''
     drift = (slope * np.arange(start, end)) + intercept
 
-    pred = y * (drift / np.mean(y))  # CHECK - Find a better way to estimate the general reconstruction...
+    pred = y * (drift / np.mean(y))  
     return pred
