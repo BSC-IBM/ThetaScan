@@ -41,3 +41,7 @@ The required packages are: ```numpy, scipy, random, matplotlib```
 * ```ThetaModel()```: constructor of the class.
 * ```fit(y, sp)```: deseasonalization, detrending and SES fitting.
 * ```forecast (n_forecast)```: forecast, resesonalization and retrending.
+
+## References
+1. [IEEE CLOUD 2021 Presentation Video](https://s3.amazonaws.com/pf-upload-01/u-59356/0/2021-08-06/8522sjx/CLD_SHT_118-Theta-Scan.mp4)
+2. [IEEE CLOUD 2021 Presentation Slides](https://s3.amazonaws.com/pf-upload-01/u-59356/0/2021-08-06/ss12sej/20210904-Cloud2021-video.pdf)
